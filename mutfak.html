@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waffle Aşkına - Mutfak Paneli 👨‍🍳</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+
+    <header class="flex justify-between items-center border-b border-gray-800 pb-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-emerald-400 tracking-wider">WAFFLE MUTFAK PANELİ 🧇</h1>
+            <p class="text-sm text-gray-400">Gelen siparişler canlı ve sesli uyarı ile düşer.</p>
+        </div>
+        <div class="bg-gray-800 px-4 py-2 rounded-xl text-sm font-medium flex items-center space-x-2">
+            <span class="animate-ping inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span>Mutfak Aktif</span>
+        </div>
+    </header>
+
+    <div id="mutfak-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+    <script>
+        const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
+        
+        let localSiparisIds = new Set();
+        let isFirstLoad = true;
+
+        function fetchOrdersRealTime() {
+            fetch(FIREBASE_URL)
+            .then(res => res.json())
+            .then(data => {
+                renderOrders(data);
+            })
+            .catch(err => console.error("Veri çekme hatası:", err))
+            .finally(() => {
+                setTimeout(fetchOrdersRealTime, 3000); 
+            });
+        }
+
+        function renderOrders(ordersObj) {
+            const container = document.getElementById('mutfak-container');
+            container.innerHTML = '';
+
+            if (!ordersObj || Object.keys(ordersObj).length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-20 text-gray-500 text-lg">
+                        📭 Bekleyen aktif sipariş yok.
+                    </div>
+                `;
+                isFirstLoad = false;
+                return;
+            }
+
+            let newOrderDetected = false;
+
+            Object.keys(ordersObj).forEach(key => {
+                const siparis = ordersObj[key];
+                
+                if (!localSiparisIds.has(key)) {
+                    localSiparisIds.add(key);
+                    if (!isFirstLoad) {
+                        newOrderDetected = true;
+                    }
+                }
+
+                let malzemelerHTML = siparis.malzemeler.map(m => 
+                    `<span class="inline-block bg-rose-950/40 text-rose-300 text-xs px-2.5 py-1 rounded-md font-medium border border-rose-900/50">${m}</span>`
+                ).join(' ');
+
+                let iceceklerHTML = siparis.icecekler.map(i => 
+                    `<div class="text-sm font-bold text-emerald-400">☕ ${i}</div>`
+                ).join('');
+
+                let kartHTML = `
+                    <div class="bg-gray-800 border-2 border-gray-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between transition hover:border-rose-500/30">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-3">
+                                <span class="bg-rose-500 text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${siparis.masa}</span>
+                                <span class="text-xs text-gray-400 font-mono">${siparis.zaman}</span>
+                            </div>
+
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">🧇 İçerik Seçimi:</p>
+                                <div class="flex flex-wrap gap-1.5">${malzemelerHTML || '<span class="text-gray-500 text-xs">Sade Waffle</span>'}</div>
+                            </div>
+
+                            ${siparis.icecekler && siparis.icecekler.length > 0 ? `<div class="mb-4 border-t border-gray-700/50 pt-3"><p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">🥤 İçecekler:</p>${iceceklerHTML}</div>` : ''}
+
+                            ${siparis.not ? `<div class="bg-gray-900/50 border-l-4 border-amber-500 p-2.5 rounded-r-xl text-xs text-amber-300 italic mb-4">"${siparis.not}"</div>` : ''}
+                        </div>
+
+                        <div class="border-t border-gray-700/50 pt-4 mt-2 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] text-gray-400 uppercase font-bold">Hesap</p>
+                                <p class="text-lg font-black text-white">${siparis.toplam} TL</p>
+                            </div>
+                            <button onclick="siparisTamamla('${key}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition cursor-pointer shadow-lg shadow-emerald-900/20">
+                                ✔️ Hazır / Servis Et
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += kartHTML;
+            });
+
+            if (newOrderDetected) {
+                document.getElementById('notif-sound').play().catch(e => console.log("Ses engellendi:", e));
+            }
+
+            isFirstLoad = false;
+        }
+
+        function siparisTamamla(siparisId) {
+            const BASE_URL = FIREBASE_URL.replace('/siparisler.json', '');
+            const SIL_URL = `${BASE_URL}/siparisler/${siparisId}.json`;
+            
+            fetch(SIL_URL, { method: 'DELETE' })
+            .then(res => {
+                if(res.ok) {
+                    localSiparisIds.delete(siparisId);
+                    fetchOrdersRealTime(); 
+                }
+            });
+        }
+
+        window.onload = fetchOrdersRealTime;
+    </script>
+</body>
+</html>
