@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waffle Aşkına - Dijital Menü</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --primary: #FF6B81;
+            --secondary: #F7B731;
+            --bg-soft: #FFF5F5;
+        }
+        body { background-color: var(--bg-soft); font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+</head>
+<body class="p-4 max-w-md mx-auto pb-32">
+
+    <header class="text-center my-6">
+        <h1 class="text-3xl font-black text-rose-500 tracking-wide">WAFFLE AŞKINA 🧇</h1>
+        <p class="text-gray-500 text-sm mt-1">Kendi waffle'ını kendin tasarla!</p>
+        <div class="mt-3 inline-block bg-rose-100 text-rose-600 font-bold px-4 py-1 rounded-full text-xs" id="table-display">
+            Masa: Seçilmedi
+        </div>
+    </header>
+
+    <div id="masa-container" class="bg-white p-4 rounded-2xl shadow-sm mb-6">
+        <label class="block text-gray-700 font-bold text-sm mb-2">Lütfen Masa Numaranızı Doğrulayın:</label>
+        <select id="masa-select" class="w-full border border-gray-200 p-3 rounded-xl focus:outline-none focus:border-rose-400">
+            <option value="">Masa Seçiniz...</option>
+            <option value="1">Masa 1</option>
+            <option value="2">Masa 2</option>
+            <option value="3">Masa 3</option>
+            <option value="4">Masa 4</option>
+            <option value="5">Masa 5</option>
+        </select>
+    </div>
+
+    <div id="loading" class="text-center py-8 text-gray-400">
+        🔄 Menü güncelleniyor, lütfen bekleyin...
+    </div>
+
+    <form id="order-form" class="space-y-6 hidden">
+        
+        <div id="waffle-section" class="space-y-4"></div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm">
+            <h2 class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2">☕ Yanına İçecek?</h2>
+            <div id="drinks-container" class="space-y-3"></div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm">
+            <h2 class="text-lg font-bold text-gray-800 mb-2">✍️ Sipariş Notu</h2>
+            <textarea id="order-note" placeholder="Alerjiniz var mı? Veya özel bir isteğiniz..." class="w-full border border-gray-100 p-3 rounded-xl text-sm focus:outline-none focus:border-rose-400 h-20 resize-none"></textarea>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white p-4 border-t border-gray-100 shadow-xl rounded-t-3xl flex justify-between items-center z-50">
+            <div>
+                <p class="text-xs text-gray-400 font-medium">Toplam Tutar</p>
+                <p class="text-2xl font-black text-gray-800"><span id="total-price">0</span> TL</p>
+            </div>
+            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-rose-200 cursor-pointer">
+                Sipariş Ver
+            </button>
+        </div>
+    </form>
+
+    <script>
+        // Senin Google Sheets ID'n entegre edildi
+        const SHEET_ID = '1DhYJ-1ShgiETe5LbUEO3WPleqrDBf3ZsuHe8kJh34hM'; 
+        
+        // ⚠️ FIREBASE'DEN ALDIĞIN URL'Yİ BURAYA YAPIŞTIR (Sonunda /siparisler.json olmalı)
+        const FIREBASE_URL = 'BURAYA_FIREBASE_URL_GELECEK/siparisler.json';
+
+        const WAFFLE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Waffle%20Malzemeleri`;
+        const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=%C4%B0%C3%A7ecekler%20ve%20Ekstralar`;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const masaParam = urlParams.get('masa');
+        if(masaParam) {
+            document.getElementById('masa-select').value = masaParam;
+            document.getElementById('table-display').innerText = `Masa: ${masaParam}`;
+            document.getElementById('masa-container').classList.add('hidden');
+        }
+
+        function parseCSV(text) {
+            let lines = text.split('\n');
+            return lines.slice(1).map(line => {
+                return line.split('","').map(item => item.replace(/"/g, '').trim());
+            }).filter(row => row.length > 1);
+        }
+
+        async function loadMenu() {
+            try {
+                const [waffleRes, drinksRes] = await Promise.all([
+                    fetch(WAFFLE_URL).then(r => r.text()),
+                    fetch(DRINKS_URL).then(r => r.text())
+                ]);
+
+                const waffleData = parseCSV(waffleRes);
+                const drinksData = parseCSV(drinksRes);
+
+                renderWaffleMenu(waffleData);
+                renderDrinksMenu(drinksData);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('order-form').classList.remove('hidden');
+            } catch (error) {
+                console.error("Menü yüklenirken hata oluştu:", error);
+                document.getElementById('loading').innerText = "❌ Menü yüklenemedi. Google Sheet ayarlarınızı kontrol edin.";
+            }
+        }
+
+        function renderWaffleMenu(data) {
+            const section = document.getElementById('waffle-section');
+            let categories = {};
+            
+            data.forEach(row => {
+                const [kat, ad, fiyat, durum, aciklama] = row;
+                if(durum !== 'Aktif') return;
+
+                if(!categories[kat]) categories[kat] = [];
+                categories[kat].push({ad, fiyat: parseFloat(fiyat) || 0, aciklama});
+            });
+
+            for (let kat in categories) {
+                let html = `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm">
+                        <h2 class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2">🥞 ${kat}</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                `;
+
+                categories[kat].forEach(prod => {
+                    let priceText = prod.fiyat > 0 ? `(+${prod.fiyat} TL)` : 'Ücretsiz';
+                    html += `
+                        <label class="flex items-start p-3 rounded-xl border border-gray-100 hover:border-rose-100 hover:bg-rose-50/30 cursor-pointer transition select-none">
+                            <input type="checkbox" name="waffle_items" value="${prod.ad}" data-price="${prod.fiyat}" class="accent-rose-500 mt-1 mr-3 rounded">
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-700">${prod.ad}</span>
+                                <span class="text-xs text-gray-400">${priceText}</span>
+                            </div>
+                        </label>
+                    `;
+                });
+
+                html += `</div></div>`;
+                section.innerHTML += html;
+            }
+        }
+
+        function renderDrinksMenu(data) {
+            const container = document.getElementById('drinks-container');
+            data.forEach(row => {
+                const [grup, ad, fiyat, durum, tip] = row;
+                if(durum !== 'Aktif') return;
+
+                container.innerHTML += `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                        <div>
+                            <span class="font-medium text-gray-700 text-sm">${ad}</span>
+                            <span class="text-xs text-gray-400 block">${grup}</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm font-bold text-gray-600">${fiyat} TL</span>
+                            <input type="number" name="drink_${ad}" data-price="${fiyat}" min="0" value="0" class="w-12 text-center border border-gray-200 rounded-lg p-1 text-sm focus:outline-none focus:border-rose-400">
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('order-form').addEventListener('input', calculateTotal);
+        
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('input[name="waffle_items"]:checked').forEach(el => {
+                total += parseFloat(el.dataset.price) || 0;
+            });
+            document.querySelectorAll('input[type="number"]').forEach(el => {
+                let qty = parseInt(el.value) || 0;
+                let price = parseFloat(el.dataset.price) || 0;
+                total += qty * price;
+            });
+            document.getElementById('total-price').innerText = total;
+        }
+
+        document.getElementById('masa-select').addEventListener('change', (e) => {
+            document.getElementById('table-display').innerText = e.target.value ? `Masa: ${e.target.value}` : 'Masa: Seçilmedi';
+        });
+
+        document.getElementById('order-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const masa = document.getElementById('masa-select').value;
+            if(!masa) {
+                alert("Lütfen siparişi tamamlamak için masa numaranızı seçin!");
+                return;
+            }
+            
+            let secilenMalzemeler = [];
+            document.querySelectorAll('input[name="waffle_items"]:checked').forEach(el => secilenMalzemeler.push(el.value));
+
+            let secilenIcecekler = [];
+            document.querySelectorAll('input[type="number"]').forEach(el => {
+                let qty = parseInt(el.value) || 0;
+                if(qty > 0) {
+                    let urunAdi = el.name.replace('drink_', '');
+                    secilenIcecekler.push(`${qty} x ${urunAdi}`);
+                }
+            });
+
+            const not = document.getElementById('order-note').value;
+            const toplamTutar = document.getElementById('total-price').innerText;
+
+            const siparis = {
+                id: Date.now(),
+                masa: masa,
+                malzemeler: secilenMalzemeler,
+                icecekler: secilenIcecekler,
+                not: not,
+                toplam: toplamTutar,
+                zaman: new Date().toLocaleTimeString('tr-TR')
+            };
+
+            // Anlık Siparişi Firebase'e Post Etme
+            fetch(FIREBASE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(siparis)
+            })
+            .then(res => {
+                if(res.ok) {
+                    alert(`Sipariş başarıyla gönderildi! Şimdiden afiyet olsun. 🥞`);
+                    document.getElementById('order-form').reset();
+                    document.getElementById('total-price').innerText = '0';
+                } else {
+                    alert('Sipariş sistem hatası sebebiyle mutfağa ulaşamadı.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Bağlantı hatası! Lütfen internetinizi kontrol edin.');
+            });
+        });
+
+            window.onload = loadMenu;
+    </script>
+</body>
+</html>
