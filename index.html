@@ -66,11 +66,8 @@
     </form>
 
     <script>
-        // Senin Google Sheets ID'n entegre edildi
         const SHEET_ID = '1DhYJ-1ShgiETe5LbUEO3WPleqrDBf3ZsuHe8kJh34hM'; 
-        
-        // ⚠️ FIREBASE'DEN ALDIĞIN URL'Yİ BURAYA YAPIŞTIR (Sonunda /siparisler.json olmalı)
-        const FIREBASE_URL = 'BURAYA_FIREBASE_URL_GELECEK/siparisler.json';
+        const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
         const WAFFLE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Waffle%20Malzemeleri`;
         const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=%C4%B0%C3%A7ecekler%20ve%20Ekstralar`;
@@ -221,7 +218,6 @@
                 zaman: new Date().toLocaleTimeString('tr-TR')
             };
 
-            // Anlık Siparişi Firebase'e Post Etme
             fetch(FIREBASE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -242,7 +238,7 @@
             });
         });
 
-            window.onload = loadMenu;
+        window.onload = loadMenu;
     </script>
 </body>
 </html>
