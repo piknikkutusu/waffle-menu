@@ -55,7 +55,7 @@
     </form>
 
     <script>
-        // Apps Script köprü linkin buraya başarıyla entegre edildi:
+        // İlettiğin güncel Apps Script URL'i buraya yerleştirildi.
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUmWm-XCZvNl4wp4VvSQnz3S0DuoOT1-369CPDZjmoySuL37lplVIqtXtjy5Z0pd9f/exec';
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
@@ -69,7 +69,8 @@
 
         async function loadMenu() {
             try {
-                const res = await fetch(APPS_SCRIPT_URL);
+                // Google yönlendirmesini otomatik takip etmesi için redirect: "follow" eklendi.
+                const res = await fetch(APPS_SCRIPT_URL, { redirect: "follow" });
                 const data = await res.json();
                 
                 renderWaffleMenu(data.waffle);
@@ -79,16 +80,17 @@
                 document.getElementById('order-form').classList.remove('hidden');
             } catch (error) {
                 console.error(error);
-                document.getElementById('loading').innerText = "❌ Menü yüklenemedi. Lütfen internetinizi kontrol edin.";
+                document.getElementById('loading').innerText = "❌ Menü yüklenemedi. Lütfen sayfayı yenileyin veya internetinizi kontrol edin.";
             }
         }
 
         function renderWaffleMenu(rows) {
             const section = document.getElementById('waffle-section');
+            section.innerHTML = '';
             let categories = {};
             
             rows.forEach((row, index) => {
-                if(index === 0) return; // Tablonun başlık satırını atla
+                if(index === 0) return; // Başlık satırını atla
                 const kat = row[0], ad = row[1], fiyat = row[2], durum = row[3];
                 if(!kat || !ad || durum === 'Pasif' || durum === 'pasif') return;
                 if(!categories[kat]) categories[kat] = [];
