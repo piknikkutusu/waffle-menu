@@ -1,33 +1,59 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
+    const app = document.getElementById("app");
+
     const menu = await loadMenu();
 
-    console.log(menu);
+    const kategoriler = [...new Set(menu.map(x => x.kategori))];
 
-    const waffleBtn = document.getElementById("waffleBtn");
-    const drinkBtn = document.getElementById("drinkBtn");
+    kategoriler.forEach(kategori => {
 
-    const waffleCount = menu.filter(x => x.kategori === "Waffle").length;
-    const drinkCount = menu.filter(x => x.kategori === "İçecek").length;
+        let icon = "📦";
 
-    waffleBtn.querySelector("p").innerText =
-        waffleCount + " ürün mevcut";
+        if(kategori === "Waffle")
+            icon = "🧇";
 
-    drinkBtn.querySelector("p").innerText =
-        drinkCount + " ürün mevcut";
+        if(kategori === "İçecek")
+            icon = "🥤";
 
-    waffleBtn.onclick = () => {
+        const urunSayisi = menu.filter(x=>x.kategori===kategori).length;
 
-        location.href =
-            "mutfak.html?kategori=Waffle";
+        app.innerHTML += `
 
-    };
+        <button class="menu-card" onclick="location.href='mutfak.html?kategori=${kategori}'">
 
-    drinkBtn.onclick = () => {
+            <div class="icon">
+                ${icon}
+            </div>
 
-        location.href =
-            "mutfak.html?kategori=İçecek";
+            <div class="text">
 
-    };
+                <h2>${kategori}</h2>
+
+                <p>${urunSayisi} ürün</p>
+
+            </div>
+
+        </button>
+
+        `;
+
+    });
+
+    app.innerHTML += `
+
+    <button class="small-card">
+        📋 Siparişlerim
+    </button>
+
+    <button class="small-card">
+        🔔 Garson Çağır
+    </button>
+
+    <button class="small-card">
+        💳 Hesap İste
+    </button>
+
+    `;
 
 });
