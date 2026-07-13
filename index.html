@@ -36,9 +36,12 @@
         </select>
     </div>
 
-    <div id="loading" class="text-center py-8 text-gray-400">
+    <div id="loading" class="text-center py-8 text-gray-400 font-medium">
         🔄 Menü güncelleniyor, lütfen bekleyin...
     </div>
+
+    <!-- Hata Bildirim Alanı -->
+    <div id="error-debug" class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-xs space-y-1 mb-4 font-mono"></div>
 
     <form id="order-form" class="space-y-6 hidden">
         
@@ -69,8 +72,9 @@
         const SHEET_ID = '1DhYJ-1ShgiETe5LbUEO3WPleqrDBf3ZsuHe8kJh34hM'; 
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
-        const WAFFLE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Waffle%20Malzemeleri`;
-        const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=%C4%B0%C3%A7ecekler%20ve%20Ekstralar`;
+        // Daha pürüzsüz bir CSV çekme yöntemi
+        const WAFFLE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv&gid=0`;
+        const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv&gid=1756531998`;
 
         const urlParams = new URLSearchParams(window.location.search);
         const masaParam = urlParams.get('masa');
@@ -80,22 +84,33 @@
             document.getElementById('masa-container').classList.add('hidden');
         }
 
+        function showDebug(msg) {
+            const box = document.getElementById('error-debug');
+            box.classList.remove('hidden');
+            box.innerHTML += `<div>• ${msg}</div>`;
+        }
+
         function parseCSV(text) {
             let lines = text.split('\n');
-            return lines.slice(1).map(line => {
-                return line.split('","').map(item => item.replace(/"/g, '').trim());
-            }).filter(row => row.length > 1);
+            return lines.map(line => {
+                // Hem tırnaklı hem tırnaksız virgülleri pürüzsüz böler
+                return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(item => item.replace(/"/g, '').trim());
+            }).filter(row => row.length > 0);
         }
 
         async function loadMenu() {
             try {
+                showDebug("Google Sheets verisi talep ediliyor...");
                 const [waffleRes, drinksRes] = await Promise.all([
-                    fetch(WAFFLE_URL).then(r => r.text()),
-                    fetch(DRINKS_URL).then(r => r.text())
+                    fetch(WAFFLE_URL).then(r => { if(!r.ok) throw new Error("Waffle sayfası çekilemedi"); return r.text(); }),
+                    fetch(DRINKS_URL).then(r => { if(!r.ok) throw new Error("İçecek sayfası çekilemedi"); return r.text(); })
                 ]);
 
                 const waffleData = parseCSV(waffleRes);
                 const drinksData = parseCSV(drinksRes);
+
+                showDebug(`Waffle verisi satır sayısı: ${waffleData.length}`);
+                showDebug(`İçecek verisi satır sayısı: ${drinksData.length}`);
 
                 renderWaffleMenu(waffleData);
                 renderDrinksMenu(drinksData);
@@ -103,8 +118,9 @@
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('order-form').classList.remove('hidden');
             } catch (error) {
-                console.error("Menü yüklenirken hata oluştu:", error);
-                document.getElementById('loading').innerText = "❌ Menü yüklenemedi. Google Sheet ayarlarınızı kontrol edin.";
+                console.error(error);
+                document.getElementById('loading').innerText = "❌ Menü verileri işlenirken yapılandırma hatası oluştu.";
+                showDebug(`KRİTİK HATA: ${error.message}`);
             }
         }
 
@@ -112,16 +128,31 @@
             const section = document.getElementById('waffle-section');
             let categories = {};
             
-            data.forEach(row => {
-                const [kat, ad, fiyat, durum, aciklama] = row;
-                if(!kat || !ad) return; // Boş satırları atla
-                if(durum === 'Pasif' || durum === 'pasif') return; // Sadece pasif yazılanları gizle
+            // Başlık satırını atlamak için i=1'den başlıyoruz
+            for(let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 2) continue;
+                
+                const kat = row[0];
+                const ad = row[1];
+                const fiyat = row[2];
+                const durum = row[3];
+
+                if(!kat || !ad) continue;
+                if(durum === 'Pasif' || durum === 'pasif') continue;
 
                 if(!categories[kat]) categories[kat] = [];
-                categories[kat].push({ad, fiyat: parseFloat(fiyat) || 0, aciklama});
-            });
+                categories[kat].push({ad, fiyat: parseFloat(fiyat) || 0});
+            }
 
-            for (let kat in categories) {
+            const catKeys = Object.keys(categories);
+            showDebug(`Bulunan Waffle Kategori Sayısı: ${catKeys.length}`);
+
+            if(catKeys.length === 0) {
+                showDebug("UYARI: Waffle kategorisi ayrıştırılamadı. Sütun sıranız (Kategori, Ürün Adı, Fiyat, Durum) şeklinde mi?");
+            }
+
+            catKeys.forEach(kat => {
                 let html = `
                     <div class="bg-white p-4 rounded-2xl shadow-sm">
                         <h2 class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2">🥞 ${kat}</h2>
@@ -143,17 +174,24 @@
 
                 html += `</div></div>`;
                 section.innerHTML += html;
-            }
+            });
         }
 
         function renderDrinksMenu(data) {
             const container = document.getElementById('drinks-container');
-            container.innerHTML = ''; // İçini temizle
+            container.innerHTML = ''; 
             
-            data.forEach(row => {
-                const [grup, ad, fiyat, durum, tip] = row;
-                if(!grup || !ad) return;
-                if(durum === 'Pasif' || durum === 'pasif') return;
+            for(let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 3) continue;
+
+                const grup = row[0];
+                const ad = row[1];
+                const fiyat = row[2];
+                const durum = row[3];
+
+                if(!grup || !ad) continue;
+                if(durum === 'Pasif' || durum === 'pasif') continue;
 
                 container.innerHTML += `
                     <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
@@ -167,7 +205,7 @@
                         </div>
                     </div>
                 `;
-            });
+            }
         }
 
         document.getElementById('order-form').addEventListener('input', calculateTotal);
