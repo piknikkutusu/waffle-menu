@@ -37,26 +37,30 @@
     </div>
 
     <div id="loading" class="text-center py-8 text-gray-400 font-medium">
-        🔄 Menü güncelleniyor, lütfen bekleyin...
+        🔄 Menü listesi yükleniyor, lütfen bekleyin...
     </div>
 
-    <!-- Hata Bildirim Alanı -->
+    <!-- Hata Ayıklama Kutusu (Sadece bir sorun çıkarsa görünür) -->
     <div id="error-debug" class="hidden bg-red-50 border border-red-200 text-red-800 p-4 rounded-2xl text-xs space-y-1 mb-4 font-mono"></div>
 
     <form id="order-form" class="space-y-6 hidden">
         
+        <!-- Waffle Malzemeleri Buraya Gelecek -->
         <div id="waffle-section" class="space-y-4"></div>
 
+        <!-- İçecekler Buraya Gelecek -->
         <div class="bg-white p-4 rounded-2xl shadow-sm">
             <h2 class="text-lg font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2">☕ Yanına İçecek?</h2>
             <div id="drinks-container" class="space-y-3"></div>
         </div>
 
+        <!-- Sipariş Notu -->
         <div class="bg-white p-4 rounded-2xl shadow-sm">
             <h2 class="text-lg font-bold text-gray-800 mb-2">✍️ Sipariş Notu</h2>
             <textarea id="order-note" placeholder="Alerjiniz var mı? Veya özel bir isteğiniz..." class="w-full border border-gray-100 p-3 rounded-xl text-sm focus:outline-none focus:border-rose-400 h-20 resize-none"></textarea>
         </div>
 
+        <!-- Sabit Alt Bar (Fiyat ve Gönder) -->
         <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white p-4 border-t border-gray-100 shadow-xl rounded-t-3xl flex justify-between items-center z-50">
             <div>
                 <p class="text-xs text-gray-400 font-medium">Toplam Tutar</p>
@@ -72,9 +76,9 @@
         const SHEET_ID = '1DhYJ-1ShgiETe5LbUEO3WPleqrDBf3ZsuHe8kJh34hM'; 
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
-        // İsim bağımlılığını kaldırdık; doğrudan gid=0 (1. sekme) ve gid=1756531998 (2. sekme) ID'leri ile çağırıyoruz.
+        // Gönderdiğin nokta atışı doğru GID numaralarını yerleştirdik
         const WAFFLE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=0&tq=SELECT%20*`;
-        const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=1756531998&tq=SELECT%20*`;
+        const DRINKS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=325949741&tq=SELECT%20*`;
 
         const urlParams = new URLSearchParams(window.location.search);
         const masaParam = urlParams.get('masa');
@@ -116,6 +120,10 @@
                 const waffleData = parseGoogleJSON(waffleRes);
                 const drinksData = parseGoogleJSON(drinksRes);
 
+                if (waffleData.length === 0 && drinksData.length === 0) {
+                    throw new Error("Tablolardan veri okunamadı.");
+                }
+
                 renderWaffleMenu(waffleData);
                 renderDrinksMenu(drinksData);
 
@@ -123,7 +131,7 @@
                 document.getElementById('order-form').classList.remove('hidden');
             } catch (error) {
                 console.error(error);
-                document.getElementById('loading').innerText = "❌ Bağlantı hatası!";
+                document.getElementById('loading').innerText = "❌ Bağlantı kurulurken bir hata oluştu.";
                 showDebug(`Hata Detayı: ${error.message}`);
             }
         }
