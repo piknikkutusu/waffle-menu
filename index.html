@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Piknik Kutusu</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/mobile.css">
+
 </head>
 
 <body>
-
-<div class="background"></div>
 
 <div class="container">
 
@@ -38,62 +41,18 @@
 
     </header>
 
-
-    <main>
-
-        <button class="menu-card primary" id="waffleBtn">
-
-            <div class="icon">
-                🧇
-            </div>
-
-            <div class="text">
-                <h2>Waffle Oluştur</h2>
-                <p>Kendi waffle'ını oluştur.</p>
-            </div>
-
-        </button>
-
-
-        <button class="menu-card" id="drinkBtn">
-
-            <div class="icon">
-                🥤
-            </div>
-
-            <div class="text">
-                <h2>İçecekler</h2>
-                <p>Soğuk ve sıcak içecekler.</p>
-            </div>
-
-        </button>
-
-
-        <button class="small-card" id="ordersBtn">
-            📋 Siparişlerim
-        </button>
-
-        <button class="small-card" id="waiterBtn">
-            🔔 Garson Çağır
-        </button>
-
-        <button class="small-card" id="billBtn">
-            💳 Hesap İste
-        </button>
+    <!-- Google Sheet'ten gelen menü buraya yerleşecek -->
+    <main id="app">
 
     </main>
 
-
     <footer>
 
-        <p>
-            © 2026 Piknik Kutusu
-        </p>
+        <p>© 2026 Piknik Kutusu</p>
 
     </footer>
 
 </div>
-
 
 <script src="js/api.js"></script>
 <script src="js/menu.js"></script>
