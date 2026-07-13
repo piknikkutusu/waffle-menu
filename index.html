@@ -1,54 +1,170 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Piknik Kutusu</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/mobile.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piknik Kutusu - Dijital QR Menü</title>
+    <!-- Tailwind CSS ve Google Fonts -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FAF6F0; /* Yumuşak Krem Arka Plan */
+        }
+        .premium-card {
+            background-color: #3C2A21; /* Koyu Kahverengi Kartlar */
+            color: #EAE3D2;
+        }
+    </style>
 </head>
+<body class="p-4 max-w-md mx-auto min-h-screen flex flex-col justify-between pb-8">
 
-<body>
+    <!-- Header / Logo Alanı -->
+    <header class="text-center my-6">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-[#3C2A21] rounded-3xl shadow-xl mb-4">
+            <span class="text-4xl">🧺</span>
+        </div>
+        <h1 class="text-3xl font-bold text-[#3C2A21] tracking-wide">Piknik Kutusu</h1>
+        <p class="text-stone-500 text-sm mt-1">Tatlı molaların en güzel adresi</p>
+        
+        <!-- Masa Bilgisi -->
+        <div class="mt-4 inline-block bg-[#EAE3D2] text-[#3C2A21] font-bold px-5 py-1.5 rounded-full text-xs shadow-sm border border-stone-300">
+            Masa: <span id="tableNumber">-</span>
+        </div>
+    </header>
 
-<div class="container">
+    <!-- Masa Seçim Modalı/Alanı (URL'de masa yoksa gösterilir) -->
+    <div id="table-select-container" class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 mb-6 text-center">
+        <h3 class="text-sm font-bold text-stone-700 mb-3">Lütfen Masa Numaranızı Seçin:</h3>
+        <select id="masa-select" class="w-full bg-[#FAF6F0] border border-stone-200 p-3 rounded-2xl text-[#3C2A21] font-semibold focus:outline-none">
+            <option value="">Seçiniz...</option>
+            <option value="1">Masa 1</option>
+            <option value="2">Masa 2</option>
+            <option value="3">Masa 3</option>
+            <option value="4">Masa 4</option>
+            <option value="5">Masa 5</option>
+        </select>
+    </div>
 
-<header class="hero">
+    <!-- Menü Seçenekleri (Butonlar) -->
+    <main class="space-y-4 flex-grow my-4">
+        
+        <!-- Waffle Oluştur -->
+        <button onclick="navigateMenu('waffle')" class="w-full premium-card p-5 rounded-3xl shadow-lg flex items-center space-x-4 active:scale-95 transition cursor-pointer">
+            <div class="bg-[#EAE3D2] w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+                🧇
+            </div>
+            <div class="text-left">
+                <h2 class="text-lg font-bold">Waffle Oluştur</h2>
+                <p class="text-stone-400 text-xs mt-0.5">Kendi waffle'ını kendin tasarla.</p>
+            </div>
+        </button>
 
-<div class="logo">🧺</div>
+        <!-- İçecekler -->
+        <button onclick="navigateMenu('icecek')" class="w-full bg-white text-[#3C2A21] p-5 rounded-3xl shadow-sm border border-stone-100 flex items-center space-x-4 active:scale-95 transition cursor-pointer">
+            <div class="bg-[#FAF6F0] w-14 h-14 rounded-2xl flex items-center justify-center text-3xl">
+                🥤
+            </div>
+            <div class="text-left">
+                <h2 class="text-lg font-bold">İçecekler</h2>
+                <p class="text-stone-500 text-xs mt-0.5">Sıcak, soğuk ve özel lezzetler.</p>
+            </div>
+        </button>
 
-<h1>Piknik Kutusu</h1>
+        <!-- Hızlı Aksiyon Küçük Kartlar -->
+        <div class="grid grid-cols-2 gap-3 pt-2">
+            <button onclick="callWaiter()" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+                <span class="text-2xl mb-1">🔔</span>
+                <span class="text-xs font-bold text-stone-700">Garson Çağır</span>
+            </button>
+            <button onclick="requestBill()" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+                <span class="text-2xl mb-1">💳</span>
+                <span class="text-xs font-bold text-stone-700">Hesap İste</span>
+            </button>
+        </div>
 
-<p class="subtitle">
-Tatlı molaların en güzel adresi
-</p>
+    </main>
 
-<div class="table-card">
-<span>Masa</span>
-<strong id="tableNumber">-</strong>
-</div>
+    <!-- Footer -->
+    <footer class="text-center text-stone-400 text-xs pt-6">
+        <p>© 2026 Piknik Kutusu</p>
+    </footer>
 
-</header>
+    <script>
+        // Masa numarasını url'den çekme
+        const urlParams = new URLSearchParams(window.location.search);
+        let masaNo = urlParams.get('masa');
 
-<main id="app"></main>
+        if(masaNo) {
+            localStorage.setItem('seciliMasa', masaNo);
+            document.getElementById('tableNumber').innerText = masaNo;
+            document.getElementById('table-select-container').classList.add('hidden');
+        } else {
+            const kayıtlıMasa = localStorage.getItem('seciliMasa');
+            if(kayıtlıMasa) {
+                document.getElementById('tableNumber').innerText = kayıtlıMasa;
+                document.getElementById('masa-select').value = kayıtlıMasa;
+            }
+        }
 
-<footer>
-<p>© 2026 Piknik Kutusu</p>
-</footer>
+        document.getElementById('masa-select').addEventListener('change', (e) => {
+            const m = e.target.value;
+            if(m) {
+                localStorage.setItem('seciliMasa', m);
+                document.getElementById('tableNumber').innerText = m;
+            } else {
+                localStorage.removeItem('seciliMasa');
+                document.getElementById('tableNumber').innerText = '-';
+            }
+        });
 
-</div>
+        function navigateMenu(type) {
+            const m = localStorage.getItem('seciliMasa');
+            if(!m) {
+                alert("Lütfen menüye girmeden önce bir masa numarası seçin!");
+                return;
+            }
+            // menu.html sayfasına masa bilgisi ve tip ile yönlendiriyoruz
+            window.location.href = `menu.html?type=${type}&masa=${m}`;
+        }
 
-<script src="js/api.js"></script>
-<script src="js/menu.js"></script>
+        // Garson ve Hesap Çağrıları için Firebase Entegrasyonu
+        const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/cagrilar.json';
 
+        function callWaiter() {
+            const m = localStorage.getItem('seciliMasa');
+            if(!m) { alert("Lütfen önce masa seçin!"); return; }
+            if(confirm(`Masa ${m} için garson çağrısı göndermek istiyor musunuz?`)) {
+                sendCall("Garson Çağırıyor");
+            }
+        }
+
+        function requestBill() {
+            const m = localStorage.getItem('seciliMasa');
+            if(!m) { alert("Lütfen önce masa seçin!"); return; }
+            if(confirm(`Masa ${m} için hesap talebi gönderilsin mi?`)) {
+                sendCall("Hesap İstiyor");
+            }
+        }
+
+        function sendCall(tip) {
+            const m = localStorage.getItem('seciliMasa');
+            fetch(FIREBASE_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    masa: m,
+                    talep: tip,
+                    zaman: new Date().toLocaleTimeString('tr-TR'),
+                    durum: 'Bekliyor'
+                })
+            }).then(r => {
+                if(r.ok) alert("Talebiniz başarıyla mutfağa iletildi. 🧺");
+            });
+        }
+    </script>
 </body>
 </html>
