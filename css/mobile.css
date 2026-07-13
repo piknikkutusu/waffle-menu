@@ -1,1 +1,33 @@
+@media(max-width:768px){
 
+.hero h1{
+
+    font-size:34px;
+}
+
+.logo{
+
+    width:80px;
+    height:80px;
+
+    font-size:40px;
+}
+
+.menu-card{
+
+    flex-direction:column;
+
+    text-align:center;
+}
+
+.text h2{
+
+    font-size:24px;
+}
+
+.small-card{
+
+    width:100%;
+}
+
+}
