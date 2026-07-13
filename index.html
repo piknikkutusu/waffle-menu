@@ -114,7 +114,8 @@
             
             data.forEach(row => {
                 const [kat, ad, fiyat, durum, aciklama] = row;
-                if(durum !== 'Aktif') return;
+                if(!kat || !ad) return; // Boş satırları atla
+                if(durum === 'Pasif' || durum === 'pasif') return; // Sadece pasif yazılanları gizle
 
                 if(!categories[kat]) categories[kat] = [];
                 categories[kat].push({ad, fiyat: parseFloat(fiyat) || 0, aciklama});
@@ -147,9 +148,12 @@
 
         function renderDrinksMenu(data) {
             const container = document.getElementById('drinks-container');
+            container.innerHTML = ''; // İçini temizle
+            
             data.forEach(row => {
                 const [grup, ad, fiyat, durum, tip] = row;
-                if(durum !== 'Aktif') return;
+                if(!grup || !ad) return;
+                if(durum === 'Pasif' || durum === 'pasif') return;
 
                 container.innerHTML += `
                     <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
