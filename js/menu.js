@@ -1,59 +1,54 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    const app = document.getElementById("app");
-
     const menu = await loadMenu();
 
-    const kategoriler = [...new Set(menu.map(x => x.kategori))];
+    console.log(menu);
+
+    const app = document.getElementById("app");
+
+    app.innerHTML = "";
+
+    // Kategorileri bul (Waffle, İçecek vb.)
+    const kategoriler = [...new Set(menu.map(item => item.kategori))];
 
     kategoriler.forEach(kategori => {
 
-        let icon = "📦";
+        const urunSayisi = menu.filter(x => x.kategori === kategori).length;
 
-        if(kategori === "Waffle")
-            icon = "🧇";
+        let icon = "🍽️";
 
-        if(kategori === "İçecek")
-            icon = "🥤";
-
-        const urunSayisi = menu.filter(x=>x.kategori===kategori).length;
+        if (kategori === "Waffle") icon = "🧇";
+        if (kategori === "İçecek") icon = "🥤";
 
         app.innerHTML += `
+            <button class="menu-card" data-kategori="${kategori}">
 
-        <button class="menu-card" onclick="location.href='mutfak.html?kategori=${kategori}'">
+                <div class="icon">
+                    ${icon}
+                </div>
 
-            <div class="icon">
-                ${icon}
-            </div>
+                <div class="text">
+                    <h2>${kategori}</h2>
+                    <p>${urunSayisi} ürün</p>
+                </div>
 
-            <div class="text">
-
-                <h2>${kategori}</h2>
-
-                <p>${urunSayisi} ürün</p>
-
-            </div>
-
-        </button>
-
+            </button>
         `;
 
     });
 
-    app.innerHTML += `
+    // Butonlara tıklama olayı
+    document.querySelectorAll(".menu-card").forEach(button => {
 
-    <button class="small-card">
-        📋 Siparişlerim
-    </button>
+        button.addEventListener("click", () => {
 
-    <button class="small-card">
-        🔔 Garson Çağır
-    </button>
+            const kategori = button.dataset.kategori;
 
-    <button class="small-card">
-        💳 Hesap İste
-    </button>
+            location.href =
+                `menu.html?kategori=${encodeURIComponent(kategori)}`;
 
-    `;
+        });
+
+    });
 
 });
