@@ -10,74 +10,83 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FAF6F0; }
-        .sticky-footer {
-            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.05);
-        }
+        .sticky-footer { box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto pb-36">
 
-    <!-- Üst Gezinme -->
     <header class="flex items-center justify-between my-4">
-        <button onclick="window.location.href='index.html'" class="bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-stone-100 font-bold text-stone-700">
-            ←
-        </button>
+        <button onclick="window.location.href='index.html'" class="bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-stone-100 font-bold text-stone-700">←</button>
         <h1 id="menu-title" class="text-xl font-bold text-[#3C2A21]">Menü</h1>
-        <div class="bg-[#EAE3D2] text-[#3C2A21] text-xs font-bold px-3 py-1.5 rounded-full">
-            Masa: <span id="masa-no">-</span>
-        </div>
+        <div class="bg-[#EAE3D2] text-[#3C2A21] text-xs font-bold px-3 py-1.5 rounded-full">Masa: <span id="masa-no">-</span></div>
     </header>
 
-    <!-- Yükleniyor Bildirimi -->
-    <div id="loading" class="text-center py-12 text-stone-400 font-medium">
-        🔄 Lezzetler yükleniyor, lütfen bekleyin...
-    </div>
+    <div id="loading" class="text-center py-12 text-stone-400 font-medium">🔄 Lezzetler yükleniyor, lütfen bekleyin...</div>
 
-    <!-- Menü Seçim Formu -->
     <form id="order-form" class="space-y-6 hidden">
-        
-        <!-- Dinamik İçerik Buraya Gelecek -->
         <div id="menu-content" class="space-y-6"></div>
 
-        <!-- Sipariş Notu -->
         <div class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100">
             <h2 class="text-sm font-bold text-stone-800 mb-2">✍️ Sipariş Notunuz</h2>
             <textarea id="order-note" placeholder="Özel bir isteğiniz var mı? (Örn: Çikolatası bol olsun...)" class="w-full bg-[#FAF6F0] p-3 rounded-2xl text-sm focus:outline-none h-20 resize-none border border-stone-100"></textarea>
         </div>
 
-        <!-- Sabit Alt Sipariş Barı -->
         <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white p-5 border-t border-stone-100 sticky-footer rounded-t-[2.5rem] flex justify-between items-center z-50">
             <div>
                 <p class="text-xs text-stone-400 font-medium">Toplam Tutar</p>
                 <p class="text-2xl font-black text-[#3C2A21]"><span id="total-price">0</span> TL</p>
             </div>
-            <button type="submit" class="bg-[#3C2A21] text-[#EAE3D2] font-bold px-8 py-3.5 rounded-2xl shadow-lg transition active:scale-95 cursor-pointer">
-                Siparişi Gönder
-            </button>
+            <button type="submit" class="bg-[#3C2A21] text-[#EAE3D2] font-bold px-8 py-3.5 rounded-2xl shadow-lg transition active:scale-95 cursor-pointer">Siparişi Gönder</button>
         </div>
     </form>
 
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUmWm-XCZvNl4wp4VvSQnz3S0DuoOT1-369CPDZjmoySuL37lplVIqtXtjy5Z0pd9f/exec';
+        const SHEET_ID = "1DhYJ-1ShgiETe5LbUEO3WPleqrDBf3ZsuHe8kJh34hM";
+        const MENU_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=MENU`;
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
         const urlParams = new URLSearchParams(window.location.search);
-        const menuType = urlParams.get('type') || 'waffle';
+        const menuType = urlParams.get('type') || 'waffle'; // 'waffle' veya 'icecek'
         const masa = urlParams.get('masa') || '-';
 
         document.getElementById('masa-no').innerText = masa;
         document.getElementById('menu-title').innerText = menuType === 'waffle' ? 'Waffle Tasarla 🧇' : 'İçecekler 🥤';
 
+        async function loadMenuData() {
+            const response = await fetch(MENU_URL);
+            const text = await response.text();
+            const json = JSON.parse(text.substring(47).slice(0, -2));
+            return json.table.rows.map(row => ({
+                id: row.c[0]?.v,
+                kategori: row.c[1]?.v,
+                altKategori: row.c[2]?.v,
+                secim: row.c[3]?.v,
+                urun: row.c[4]?.v,
+                aciklama: row.c[5]?.v,
+                fiyat: row.c[6]?.v,
+                resim: row.c[7]?.v,
+                aktif: row.c[8]?.v,
+                zorunlu: row.c[9]?.v,
+                maksimum: row.c[10]?.v,
+                stok: row.c[11]?.v,
+                sira: row.c[12]?.v,
+                gorunum: row.c[13]?.v
+            }));
+        }
+
         async function loadData() {
             try {
-                const res = await fetch(APPS_SCRIPT_URL, { redirect: "follow" });
-                const data = await res.json();
-                
-                if (menuType === 'waffle') {
-                    renderWaffle(data.waffle);
-                } else {
-                    renderDrinks(data.drinks);
-                }
+                const allItems = await loadMenuData();
+
+                const kategoriMap = { waffle: 'Waffle', icecek: 'İçecek' };
+                const hedefKategori = kategoriMap[menuType] || 'Waffle';
+
+                const filtered = allItems.filter(item => {
+                    const aktifMi = item.aktif === true || item.aktif === 'TRUE';
+                    return item.kategori === hedefKategori && aktifMi;
+                });
+
+                renderGroups(filtered);
 
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('order-form').classList.remove('hidden');
@@ -87,101 +96,114 @@
             }
         }
 
-        // Waffle Tasarım Ekranı (Starbucks Tasarımı)
-        function renderWaffle(rows) {
-            const container = document.getElementById('menu-content');
-            let categories = {};
+        function renderGroups(items) {
+            items.sort((a, b) => (parseFloat(a.sira) || 0) - (parseFloat(b.sira) || 0));
 
-            rows.forEach((row, index) => {
-                if (index === 0) return; // Başlıkları es geç
-                const kat = row[0], ad = row[1], fiyat = row[2], durum = row[3];
-                if (!kat || !ad || durum === 'Pasif' || durum === 'pasif') return;
-                if (!categories[kat]) categories[kat] = [];
-                categories[kat].push({ ad, fiyat: parseFloat(fiyat) || 0 });
+            const groups = {};
+            const groupOrder = [];
+            items.forEach(item => {
+                const key = item.altKategori || 'Diğer';
+                if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
+                groups[key].push(item);
             });
 
-            for (let kat in categories) {
+            const container = document.getElementById('menu-content');
+            container.innerHTML = '';
+
+            groupOrder.forEach(grupAdi => {
+                const grupItems = groups[grupAdi];
+                const secimTipi = grupItems[0].secim;
+                const zorunlu = grupItems[0].zorunlu === true || grupItems[0].zorunlu === 'TRUE';
+                const maksimum = parseInt(grupItems[0].maksimum) || 99;
+                const safeName = grupAdi.replace(/\s+/g, '_');
+
                 let html = `
                     <div class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100">
-                        <h3 class="text-md font-bold text-[#3C2A21] mb-4 pb-2 border-b border-stone-100 flex items-center">✨ ${kat}</h3>
+                        <h3 class="text-md font-bold text-[#3C2A21] mb-4 pb-2 border-b border-stone-100">
+                            ${grupAdi} ${zorunlu ? '<span class="text-red-400 text-xs font-normal">(Zorunlu)</span>' : ''}
+                        </h3>
                         <div class="space-y-3">
                 `;
 
-                categories[kat].forEach(item => {
-                    let priceText = item.fiyat > 0 ? `+${item.fiyat} TL` : 'Ücretsiz';
-                    html += `
-                        <label class="flex justify-between items-center p-3 rounded-2xl bg-[#FAF6F0]/50 border border-stone-100 hover:bg-[#EAE3D2]/20 cursor-pointer transition select-none">
-                            <div class="flex items-center space-x-3">
-                                <input type="checkbox" name="waffle_items" value="${item.ad}" data-price="${item.fiyat}" class="w-5 h-5 rounded-lg accent-[#3C2A21]">
-                                <span class="font-semibold text-stone-700 text-sm">${item.ad}</span>
-                            </div>
-                            <span class="text-xs font-bold text-stone-500">${priceText}</span>
-                        </label>
-                    `;
+                grupItems.forEach(item => {
+                    const fiyat = parseFloat(item.fiyat) || 0;
+                    const priceText = fiyat > 0 ? `+${fiyat} TL` : 'Ücretsiz';
+
+                    if (secimTipi === 'radio') {
+                        html += `
+                            <label class="flex justify-between items-center p-3 rounded-2xl bg-[#FAF6F0]/50 border border-stone-100 cursor-pointer">
+                                <div class="flex items-center space-x-3">
+                                    <input type="radio" name="grp_${safeName}" value="${item.urun}" data-price="${fiyat}" ${zorunlu ? 'required' : ''} class="w-5 h-5 accent-[#3C2A21]">
+                                    <span class="font-semibold text-stone-700 text-sm">${item.urun}</span>
+                                </div>
+                                <span class="text-xs font-bold text-stone-500">${priceText}</span>
+                            </label>`;
+                    } else if (secimTipi === 'checkbox') {
+                        html += `
+                            <label class="flex justify-between items-center p-3 rounded-2xl bg-[#FAF6F0]/50 border border-stone-100 cursor-pointer">
+                                <div class="flex items-center space-x-3">
+                                    <input type="checkbox" name="grp_${safeName}" value="${item.urun}" data-price="${fiyat}" data-max="${maksimum}" class="w-5 h-5 rounded-lg accent-[#3C2A21] checkbox-item">
+                                    <span class="font-semibold text-stone-700 text-sm">${item.urun}</span>
+                                </div>
+                                <span class="text-xs font-bold text-stone-500">${priceText}</span>
+                            </label>`;
+                    } else { // button -> adet girişi (içecekler)
+                        html += `
+                            <div class="flex justify-between items-center py-3 border-b border-stone-50 last:border-0">
+                                <div>
+                                    <span class="font-bold text-stone-800 text-sm block">${item.urun}</span>
+                                    <span class="text-xs text-stone-400 block">${item.aciklama || ''}</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm font-bold text-stone-600 mr-2">${fiyat} TL</span>
+                                    <input type="number" name="qty_${item.urun}" data-price="${fiyat}" min="0" value="0" class="w-12 text-center bg-[#FAF6F0] font-semibold border border-stone-200 rounded-xl p-1.5 text-sm focus:outline-none">
+                                </div>
+                            </div>`;
+                    }
                 });
 
                 html += `</div></div>`;
                 container.innerHTML += html;
-            }
-        }
-
-        // İçecekler Ekranı (Starbucks Tasarımı)
-        function renderDrinks(rows) {
-            const container = document.getElementById('menu-content');
-            let html = `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100">
-                    <div class="space-y-4">
-            `;
-
-            rows.forEach((row, index) => {
-                if (index === 0) return;
-                const kat = row[0], ad = row[1], fiyat = row[2], durum = row[3];
-                if (!kat || !ad || durum === 'Pasif' || durum === 'pasif') return;
-
-                html += `
-                    <div class="flex justify-between items-center py-3 border-b border-stone-50 last:border-0">
-                        <div>
-                            <span class="font-bold text-stone-800 text-sm block">${ad}</span>
-                            <span class="text-xs text-stone-400 block">${kat}</span>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <span class="text-sm font-bold text-stone-600 mr-2">${fiyat} TL</span>
-                            <input type="number" name="drink_${ad}" data-price="${fiyat}" min="0" value="0" class="w-12 text-center bg-[#FAF6F0] font-semibold border border-stone-200 rounded-xl p-1.5 text-sm focus:outline-none">
-                        </div>
-                    </div>
-                `;
             });
 
-            html += `</div></div>`;
-            container.innerHTML = html;
+            document.querySelectorAll('.checkbox-item').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const groupName = this.name;
+                    const max = parseInt(this.dataset.max);
+                    const checked = document.querySelectorAll(`input[name="${groupName}"]:checked`);
+                    if (checked.length > max) {
+                        this.checked = false;
+                        alert(`Bu kategoriden en fazla ${max} adet seçebilirsiniz.`);
+                    }
+                });
+            });
         }
 
-        // Dinamik Fiyat Hesaplama
         document.getElementById('order-form').addEventListener('input', () => {
             let total = 0;
-            document.querySelectorAll('input[name="waffle_items"]:checked').forEach(el => total += parseFloat(el.dataset.price) || 0);
+            document.querySelectorAll('input[type="radio"]:checked').forEach(el => total += parseFloat(el.dataset.price) || 0);
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(el => total += parseFloat(el.dataset.price) || 0);
             document.querySelectorAll('input[type="number"]').forEach(el => total += (parseInt(el.value) || 0) * (parseFloat(el.dataset.price) || 0));
             document.getElementById('total-price').innerText = total;
         });
 
-        // Siparişi Firebase'e Gönderme
-        document.getElementById('order-form').addEventListener('submit', function(e) {
+        document.getElementById('order-form').addEventListener('submit', function (e) {
             e.preventDefault();
-            
-            let secilenMalzemeler = [];
-            document.querySelectorAll('input[name="waffle_items"]:checked').forEach(el => secilenMalzemeler.push(el.value));
 
-            let secilenIcecekler = [];
+            let secilenler = [];
+            document.querySelectorAll('input[type="radio"]:checked').forEach(el => secilenler.push(el.value));
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(el => secilenler.push(el.value));
+
+            let adetliUrunler = [];
             document.querySelectorAll('input[type="number"]').forEach(el => {
-                let qty = parseInt(el.value) || 0;
-                if(qty > 0) {
-                    let urunAdi = el.name.replace('drink_', '');
-                    secilenIcecekler.push(`${qty} x ${urunAdi}`);
+                const qty = parseInt(el.value) || 0;
+                if (qty > 0) {
+                    const urunAdi = el.name.replace('qty_', '');
+                    adetliUrunler.push(`${qty} x ${urunAdi}`);
                 }
             });
 
-            // Sepet boşsa engelle
-            if (secilenMalzemeler.length === 0 && secilenIcecekler.length === 0) {
+            if (secilenler.length === 0 && adetliUrunler.length === 0) {
                 alert("Lütfen en az bir ürün veya malzeme seçimi yapın!");
                 return;
             }
@@ -193,8 +215,8 @@
                 id: Date.now(),
                 masa: masa,
                 tur: menuType === 'waffle' ? 'Waffle Siparişi' : 'İçecek Siparişi',
-                malzemeler: secilenMalzemeler,
-                icecekler: secilenIcecekler,
+                malzemeler: secilenler,
+                icecekler: adetliUrunler,
                 not: not,
                 toplam: toplamTutar,
                 zaman: new Date().toLocaleTimeString('tr-TR'),
@@ -207,7 +229,7 @@
                 body: JSON.stringify(siparis)
             })
             .then(res => {
-                if(res.ok) {
+                if (res.ok) {
                     alert(`Siparişiniz başarıyla mutfağa gönderildi! Şimdiden afiyet olsun. 🥞🧺`);
                     window.location.href = 'index.html';
                 }
