@@ -45,8 +45,17 @@
         const MENU_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=MENU`;
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler.json';
 
+        function getClientId() {
+            let id = localStorage.getItem('clientId');
+            if (!id) {
+                id = 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('clientId', id);
+            }
+            return id;
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
-        const menuType = urlParams.get('type') || 'waffle'; // 'waffle' veya 'icecek'
+        const menuType = urlParams.get('type') || 'waffle';
         const masa = urlParams.get('masa') || '-';
 
         document.getElementById('masa-no').innerText = masa;
@@ -147,7 +156,7 @@
                                 </div>
                                 <span class="text-xs font-bold text-stone-500">${priceText}</span>
                             </label>`;
-                    } else { // button -> adet girişi (içecekler)
+                    } else {
                         html += `
                             <div class="flex justify-between items-center py-3 border-b border-stone-50 last:border-0">
                                 <div>
@@ -214,6 +223,8 @@
             const siparis = {
                 id: Date.now(),
                 masa: masa,
+                isim: localStorage.getItem('musteriAdi') || 'İsimsiz',
+                clientId: getClientId(),
                 tur: menuType === 'waffle' ? 'Waffle Siparişi' : 'İçecek Siparişi',
                 malzemeler: secilenler,
                 icecekler: adetliUrunler,
