@@ -23,9 +23,7 @@
             <p class="text-sm text-stone-500 mt-1">Siparişler ve masa talepleri anlık olarak burada.</p>
         </div>
         <div class="flex items-center gap-3">
-            <button id="notif-permission-btn" class="bg-[#EAE3D2] text-[#1C1410] text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">
-                🔔 Bildirimleri Aç
-            </button>
+            <button id="notif-permission-btn" class="bg-[#EAE3D2] text-[#1C1410] text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">🔔 Bildirimleri Aç</button>
             <div class="bg-stone-800 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
                 <span class="animate-ping inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
                 <span>Canlı</span>
@@ -115,7 +113,7 @@
                     knownOrderIds.add(key);
                     if (!isFirstLoad) {
                         newDetected = true;
-                        showDesktopNotification(`🧇 Yeni Sipariş - Masa ${s.masa}`, `${s.tur} - ${s.toplam} TL`);
+                        showDesktopNotification(`🧇 Yeni Sipariş - Masa ${s.masa}`, `${s.isim || ''} - ${s.tur} - ${s.toplam} TL`);
                     }
                 }
 
@@ -131,7 +129,10 @@
                     <div class="order-card bg-stone-900 border-2 border-stone-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-amber-700/40 transition">
                         <div>
                             <div class="flex justify-between items-center border-b border-stone-800 pb-3 mb-3">
-                                <span class="bg-amber-800 text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${s.masa}</span>
+                                <div>
+                                    <span class="bg-amber-800 text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${s.masa}</span>
+                                    ${s.isim ? `<span class="text-amber-200 text-sm font-semibold ml-2">👤 ${s.isim}</span>` : ''}
+                                </div>
                                 <span class="text-xs text-stone-500 font-mono">${s.zaman}</span>
                             </div>
                             <p class="text-xs font-bold text-stone-400 uppercase mb-2">${s.tur || 'Sipariş'}</p>
@@ -192,7 +193,7 @@
                     knownCallIds.add(key);
                     if (!isFirstCallLoad) {
                         newDetected = true;
-                        showDesktopNotification(`🔔 Masa ${c.masa} - ${c.talep}`, `Saat: ${c.zaman}`);
+                        showDesktopNotification(`🔔 Masa ${c.masa} - ${c.talep}`, `${c.isim || ''} - Saat: ${c.zaman}`);
                     }
                 }
 
@@ -202,7 +203,10 @@
                     <div class="order-card bg-stone-900 border-2 ${isBill ? 'border-blue-800/50' : 'border-amber-800/50'} rounded-2xl p-5 shadow-xl flex flex-col justify-between">
                         <div>
                             <div class="flex justify-between items-center mb-3">
-                                <span class="${isBill ? 'bg-blue-700' : 'bg-amber-700'} text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${c.masa}</span>
+                                <div>
+                                    <span class="${isBill ? 'bg-blue-700' : 'bg-amber-700'} text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${c.masa}</span>
+                                    ${c.isim ? `<span class="text-stone-300 text-sm font-semibold ml-2">👤 ${c.isim}</span>` : ''}
+                                </div>
                                 <span class="text-xs text-stone-500 font-mono">${c.zaman}</span>
                             </div>
                             <p class="text-lg font-bold text-white">${isBill ? '💳' : '🔔'} ${c.talep}</p>
