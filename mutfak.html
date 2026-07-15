@@ -17,7 +17,6 @@
 </head>
 <body class="min-h-screen text-stone-100 p-6">
 
-    <!-- Header -->
     <header class="flex justify-between items-center border-b border-stone-800 pb-5 mb-6">
         <div>
             <h1 class="text-2xl font-black text-[#EAE3D2] tracking-wide">🧺 PİKNİK KUTUSU MUTFAK</h1>
@@ -34,7 +33,6 @@
         </div>
     </header>
 
-    <!-- Sekmeler -->
     <div class="flex gap-2 mb-6">
         <button onclick="switchTab('orders')" id="tab-orders" class="tab-active px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer">
             📋 Siparişler <span id="order-count" class="ml-1"></span>
@@ -44,13 +42,9 @@
         </button>
     </div>
 
-    <!-- Siparişler Paneli -->
     <div id="orders-panel" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-
-    <!-- Çağrılar Paneli -->
     <div id="calls-panel" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
 
-    <!-- Sesler -->
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
     <audio id="call-sound" src="https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3" preload="auto"></audio>
 
@@ -61,8 +55,8 @@
         let knownOrderIds = new Set();
         let knownCallIds = new Set();
         let isFirstLoad = true;
+        let isFirstCallLoad = true;
 
-        // --- Bildirim izni ---
         document.getElementById('notif-permission-btn').addEventListener('click', () => {
             if (!("Notification" in window)) {
                 alert("Bu tarayıcı masaüstü bildirimlerini desteklemiyor.");
@@ -77,11 +71,10 @@
 
         function showDesktopNotification(title, body) {
             if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body: body, icon: "" });
+                new Notification(title, { body: body });
             }
         }
 
-        // --- Sekme geçişi ---
         function switchTab(tab) {
             document.getElementById('orders-panel').classList.toggle('hidden', tab !== 'orders');
             document.getElementById('calls-panel').classList.toggle('hidden', tab !== 'calls');
@@ -93,7 +86,6 @@
                 : 'bg-stone-800 text-stone-300 px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer';
         }
 
-        // --- Siparişleri çek ---
         function fetchOrders() {
             fetch(SIPARIS_URL)
                 .then(res => res.json())
@@ -122,3 +114,70 @@
                 if (!knownOrderIds.has(key)) {
                     knownOrderIds.add(key);
                     if (!isFirstLoad) {
+                        newDetected = true;
+                        showDesktopNotification(`🧇 Yeni Sipariş - Masa ${s.masa}`, `${s.tur} - ${s.toplam} TL`);
+                    }
+                }
+
+                const malzemeler = (s.malzemeler || []).map(m =>
+                    `<span class="inline-block bg-amber-950/40 text-amber-300 text-xs px-2.5 py-1 rounded-md font-medium border border-amber-900/40">${m}</span>`
+                ).join(' ');
+
+                const icecekler = (s.icecekler || []).map(i =>
+                    `<div class="text-sm font-bold text-emerald-400">🥤 ${i}</div>`
+                ).join('');
+
+                container.innerHTML += `
+                    <div class="order-card bg-stone-900 border-2 border-stone-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-amber-700/40 transition">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-stone-800 pb-3 mb-3">
+                                <span class="bg-amber-800 text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${s.masa}</span>
+                                <span class="text-xs text-stone-500 font-mono">${s.zaman}</span>
+                            </div>
+                            <p class="text-xs font-bold text-stone-400 uppercase mb-2">${s.tur || 'Sipariş'}</p>
+                            ${malzemeler ? `<div class="flex flex-wrap gap-1.5 mb-3">${malzemeler}</div>` : ''}
+                            ${icecekler ? `<div class="mb-3">${icecekler}</div>` : ''}
+                            ${s.not ? `<div class="bg-stone-950/60 border-l-4 border-amber-500 p-2.5 rounded-r-xl text-xs text-amber-300 italic mb-3">"${s.not}"</div>` : ''}
+                        </div>
+                        <div class="border-t border-stone-800 pt-3 mt-2 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] text-stone-500 uppercase font-bold">Tutar</p>
+                                <p class="text-lg font-black text-white">${s.toplam} TL</p>
+                            </div>
+                            <button onclick="completeOrder('${key}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition cursor-pointer">
+                                ✔️ Hazır / Teslim
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (newDetected) {
+                document.getElementById('notif-sound').play().catch(() => {});
+            }
+            isFirstLoad = false;
+        }
+
+        function completeOrder(id) {
+            fetch(`https://waffle-menu-cff76-default-rtdb.firebaseio.com/siparisler/${id}.json`, { method: 'DELETE' })
+                .then(res => { if (res.ok) knownOrderIds.delete(id); });
+        }
+
+        function fetchCalls() {
+            fetch(CAGRI_URL)
+                .then(res => res.json())
+                .then(data => renderCalls(data))
+                .catch(err => console.error("Çağrı çekme hatası:", err))
+                .finally(() => setTimeout(fetchCalls, 3000));
+        }
+
+        function renderCalls(callsObj) {
+            const container = document.getElementById('calls-panel');
+            container.innerHTML = '';
+
+            if (!callsObj || Object.keys(callsObj).length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-stone-500">📭 Bekleyen talep yok.</div>`;
+                document.getElementById('call-count').innerText = '';
+                isFirstCallLoad = false;
+                return;
+            }
