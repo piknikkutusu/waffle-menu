@@ -181,3 +181,54 @@
                 isFirstCallLoad = false;
                 return;
             }
+
+            let newDetected = false;
+            const keys = Object.keys(callsObj);
+            document.getElementById('call-count').innerText = `(${keys.length})`;
+
+            keys.forEach(key => {
+                const c = callsObj[key];
+                if (!knownCallIds.has(key)) {
+                    knownCallIds.add(key);
+                    if (!isFirstCallLoad) {
+                        newDetected = true;
+                        showDesktopNotification(`🔔 Masa ${c.masa} - ${c.talep}`, `Saat: ${c.zaman}`);
+                    }
+                }
+
+                const isBill = c.talep === 'Hesap İstiyor';
+
+                container.innerHTML += `
+                    <div class="order-card bg-stone-900 border-2 ${isBill ? 'border-blue-800/50' : 'border-amber-800/50'} rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="${isBill ? 'bg-blue-700' : 'bg-amber-700'} text-white font-black px-4 py-1 rounded-xl text-lg">MASA ${c.masa}</span>
+                                <span class="text-xs text-stone-500 font-mono">${c.zaman}</span>
+                            </div>
+                            <p class="text-lg font-bold text-white">${isBill ? '💳' : '🔔'} ${c.talep}</p>
+                        </div>
+                        <button onclick="completeCall('${key}')" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition cursor-pointer">
+                            ✔️ Talep Karşılandı
+                        </button>
+                    </div>
+                `;
+            });
+
+            if (newDetected) {
+                document.getElementById('call-sound').play().catch(() => {});
+            }
+            isFirstCallLoad = false;
+        }
+
+        function completeCall(id) {
+            fetch(`https://waffle-menu-cff76-default-rtdb.firebaseio.com/cagrilar/${id}.json`, { method: 'DELETE' })
+                .then(res => { if (res.ok) knownCallIds.delete(id); });
+        }
+
+        window.onload = () => {
+            fetchOrders();
+            fetchCalls();
+        };
+    </script>
+</body>
+</html>
