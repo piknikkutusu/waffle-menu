@@ -11,6 +11,7 @@
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #FAF6F0; }
         .premium-card { background-color: #3C2A21; color: #EAE3D2; }
+        .modal-overlay { background-color: rgba(28, 20, 16, 0.6); }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto min-h-screen flex flex-col justify-between pb-8">
@@ -26,10 +27,7 @@
         </div>
     </header>
 
-    <div id="table-select-container" class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 mb-6 text-center">
-        <h3 class="text-sm font-bold text-stone-700 mb-3">İsminiz:</h3>
-        <input type="text" id="musteri-adi" placeholder="Adınızı yazın" class="w-full bg-[#FAF6F0] border border-stone-200 p-3 rounded-2xl text-[#3C2A21] font-semibold focus:outline-none mb-4">
-
+    <div id="table-select-container" class="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 mb-6 text-center hidden">
         <h3 class="text-sm font-bold text-stone-700 mb-3">Lütfen Masa Numaranızı Seçin:</h3>
         <select id="masa-select" class="w-full bg-[#FAF6F0] border border-stone-200 p-3 rounded-2xl text-[#3C2A21] font-semibold focus:outline-none">
             <option value="">Seçiniz...</option>
@@ -59,7 +57,7 @@
             </div>
         </button>
 
-        <button onclick="window.location.href='orders.html'" class="w-full bg-white text-[#3C2A21] p-5 rounded-3xl shadow-sm border border-stone-100 flex items-center space-x-4 active:scale-95 transition cursor-pointer">
+        <button onclick="goToOrders()" class="w-full bg-white text-[#3C2A21] p-5 rounded-3xl shadow-sm border border-stone-100 flex items-center space-x-4 active:scale-95 transition cursor-pointer">
             <div class="bg-[#FAF6F0] w-14 h-14 rounded-2xl flex items-center justify-center text-3xl">📋</div>
             <div class="text-left">
                 <h2 class="text-lg font-bold">Siparişlerim</h2>
@@ -68,11 +66,11 @@
         </button>
 
         <div class="grid grid-cols-2 gap-3 pt-2">
-            <button onclick="callWaiter()" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+            <button onclick="askNameThen(callWaiter)" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
                 <span class="text-2xl mb-1">🔔</span>
                 <span class="text-xs font-bold text-stone-700">Garson Çağır</span>
             </button>
-            <button onclick="requestBill()" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+            <button onclick="askNameThen(requestBill)" class="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
                 <span class="text-2xl mb-1">💳</span>
                 <span class="text-xs font-bold text-stone-700">Hesap İste</span>
             </button>
@@ -83,6 +81,19 @@
     <footer class="text-center text-stone-400 text-xs pt-6">
         <p>© 2026 Piknik Kutusu</p>
     </footer>
+
+    <!-- İsim Sorma Modalı -->
+    <div id="name-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold text-[#3C2A21] mb-1">İsminiz nedir?</h3>
+            <p class="text-xs text-stone-500 mb-4">Size ismizle servis edebilmemiz için.</p>
+            <input type="text" id="name-modal-input" placeholder="Adınız" class="w-full bg-[#FAF6F0] border border-stone-200 p-3 rounded-2xl text-[#3C2A21] font-semibold focus:outline-none mb-4">
+            <div class="flex gap-2">
+                <button onclick="closeNameModal()" class="flex-1 bg-stone-100 text-stone-600 font-bold py-3 rounded-2xl cursor-pointer">Vazgeç</button>
+                <button onclick="confirmNameModal()" class="flex-1 bg-[#3C2A21] text-[#EAE3D2] font-bold py-3 rounded-2xl cursor-pointer">Onayla</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         function getClientId() {
@@ -95,73 +106,95 @@
         }
         getClientId();
 
-        const kayitliAd = localStorage.getItem('musteriAdi');
-        if (kayitliAd) {
-            document.getElementById('musteri-adi').value = kayitliAd;
-        }
-        document.getElementById('musteri-adi').addEventListener('input', (e) => {
-            localStorage.setItem('musteriAdi', e.target.value.trim());
-        });
-
         const urlParams = new URLSearchParams(window.location.search);
         let masaNo = urlParams.get('masa');
 
-        if(masaNo) {
+        if (masaNo) {
             localStorage.setItem('seciliMasa', masaNo);
             document.getElementById('tableNumber').innerText = masaNo;
+            document.getElementById('table-select-container').classList.add('hidden');
         } else {
-            const kayıtlıMasa = localStorage.getItem('seciliMasa');
-            if(kayıtlıMasa) {
-                document.getElementById('tableNumber').innerText = kayıtlıMasa;
-                document.getElementById('masa-select').value = kayıtlıMasa;
+            const kayitliMasa = localStorage.getItem('seciliMasa');
+            if (kayitliMasa) {
+                document.getElementById('tableNumber').innerText = kayitliMasa;
+                document.getElementById('table-select-container').classList.add('hidden');
+            } else {
+                document.getElementById('table-select-container').classList.remove('hidden');
             }
         }
 
-        document.getElementById('masa-select').addEventListener('change', (e) => {
-            const m = e.target.value;
-            if(m) {
-                localStorage.setItem('seciliMasa', m);
-                document.getElementById('tableNumber').innerText = m;
-            } else {
-                localStorage.removeItem('seciliMasa');
-                document.getElementById('tableNumber').innerText = '-';
-            }
-        });
+        const masaSelectEl = document.getElementById('masa-select');
+        if (masaSelectEl) {
+            masaSelectEl.addEventListener('change', (e) => {
+                const m = e.target.value;
+                if (m) {
+                    localStorage.setItem('seciliMasa', m);
+                    document.getElementById('tableNumber').innerText = m;
+                } else {
+                    localStorage.removeItem('seciliMasa');
+                    document.getElementById('tableNumber').innerText = '-';
+                }
+            });
+        }
 
         function navigateMenu(type) {
             const m = localStorage.getItem('seciliMasa');
-            const ad = localStorage.getItem('musteriAdi');
-            if(!ad) {
-                alert("Lütfen önce isminizi yazın!");
-                return;
-            }
-            if(!m) {
-                alert("Lütfen menüye girmeden önce bir masa numarası seçin!");
+            if (!m) {
+                alert("Lütfen önce masa numaranızı seçin!");
                 return;
             }
             window.location.href = `menu.html?type=${type}&masa=${m}`;
         }
 
+        function goToOrders() {
+            window.location.href = 'orders.html';
+        }
+
+        // --- İsim Modalı ---
+        let pendingAction = null;
+
+        function askNameThen(action) {
+            const m = localStorage.getItem('seciliMasa');
+            if (!m) {
+                alert("Lütfen önce masa numaranızı seçin!");
+                return;
+            }
+            const kayitliAd = localStorage.getItem('musteriAdi');
+            if (kayitliAd) {
+                action();
+                return;
+            }
+            pendingAction = action;
+            document.getElementById('name-modal-input').value = '';
+            document.getElementById('name-modal').classList.remove('hidden');
+        }
+
+        function closeNameModal() {
+            document.getElementById('name-modal').classList.add('hidden');
+            pendingAction = null;
+        }
+
+        function confirmNameModal() {
+            const ad = document.getElementById('name-modal-input').value.trim();
+            if (!ad) {
+                alert("Lütfen isminizi yazın.");
+                return;
+            }
+            localStorage.setItem('musteriAdi', ad);
+            document.getElementById('name-modal').classList.add('hidden');
+            if (pendingAction) pendingAction();
+            pendingAction = null;
+        }
+
+        // --- Garson / Hesap ---
         const FIREBASE_URL = 'https://waffle-menu-cff76-default-rtdb.firebaseio.com/cagrilar.json';
 
         function callWaiter() {
-            const m = localStorage.getItem('seciliMasa');
-            const ad = localStorage.getItem('musteriAdi');
-            if(!ad) { alert("Lütfen önce isminizi yazın!"); return; }
-            if(!m) { alert("Lütfen önce masa seçin!"); return; }
-            if(confirm(`Masa ${m} için garson çağrısı göndermek istiyor musunuz?`)) {
-                sendCall("Garson Çağırıyor");
-            }
+            sendCall("Garson Çağırıyor");
         }
 
         function requestBill() {
-            const m = localStorage.getItem('seciliMasa');
-            const ad = localStorage.getItem('musteriAdi');
-            if(!ad) { alert("Lütfen önce isminizi yazın!"); return; }
-            if(!m) { alert("Lütfen önce masa seçin!"); return; }
-            if(confirm(`Masa ${m} için hesap talebi gönderilsin mi?`)) {
-                sendCall("Hesap İstiyor");
-            }
+            sendCall("Hesap İstiyor");
         }
 
         function sendCall(tip) {
@@ -178,7 +211,7 @@
                     durum: 'Bekliyor'
                 })
             }).then(r => {
-                if(r.ok) alert("Talebiniz başarıyla mutfağa iletildi. 🧺");
+                if (r.ok) alert("Talebiniz başarıyla mutfağa iletildi. 🧺");
             });
         }
     </script>
